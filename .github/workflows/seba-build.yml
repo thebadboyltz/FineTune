@@ -1,0 +1,56 @@
+
+name: SEBA - Build FineTune MRX500
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compiler FineTune SEBA
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v4
+
+      - name: Verifier le correctif MRX500
+        run: |
+          grep -Fq 'hasPrefix("05C50700-")' FineTune/Audio/Engine/ProcessTapController.swift
+
+      - name: Configurer Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Compiler FineTune
+        run: |
+          xcodebuild build \
+            -project FineTune.xcodeproj \
+            -scheme FineTune \
+            -configuration Debug \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath "$RUNNER_TEMP/SEBA-DerivedData" \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM="" \
+            PRODUCT_BUNDLE_IDENTIFIER="com.seba.finetune.mrx500test"
+
+      - name: Creer archive ZIP
+        run: |
+          mkdir -p dist
+          APP="$RUNNER_TEMP/SEBA-DerivedData/Build/Products/Debug/FineTune.app"
+          test -d "$APP"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$APP" dist/FineTune-SEBA-MRX500.zip
+
+      - name: Rendre la compilation telechargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: SEBA-FineTune-MRX500-Test
+          path: dist/FineTune-SEBA-MRX500.zip
+          if-no-files-found: error
+          retention-days: 7
