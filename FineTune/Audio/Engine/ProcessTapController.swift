@@ -436,6 +436,11 @@ final class ProcessTapController: ProcessTapControlling {
         guard let deviceUID, let deviceID = audioDeviceID(for: deviceUID) else {
             return (0, 1)
         }
+        
+        if deviceUID.uppercased().hasPrefix("05C50700-") {
+            return (7, 0)
+        }
+
         return deviceID.preferredStereoChannelIndices()
     }
 
